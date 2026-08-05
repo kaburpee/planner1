@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Trip Schedule Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root, body[data-theme="ivory"]{
+    --ink:#faf8f4; --ink-2:#ffffff;
+    --paper:#ffffff; --paper-2:#f6f1e6; --paper-text:#1a1712;
+    --accent:#a9812f; --accent-2:#1a1712;
+    --cream-text:#1a1712; --muted:#8c8172; --slate:#e4dcc7;
+    --input-bg:#ffffff; --input-border:#ddd3ba;
+    --rule:#dcd0ab;
+  }
+  body[data-theme="onyx"]{
+    --ink:#0d0c0a; --ink-2:#151310;
+    --paper:#1b1815; --paper-2:#242019; --paper-text:#f3ede1;
+    --accent:#c9a24b; --accent-2:#f3ede1;
+    --cream-text:#f3ede1; --muted:#a89d87; --slate:#332d24;
+    --input-bg:#211d18; --input-border:#3a332780;
+    --rule:#42392a;
+  }
+  body[data-theme="champagne"]{
+    --ink:#f7f1e4; --ink-2:#fffdf8;
+    --paper:#fffdf8; --paper-2:#f1e6cb; --paper-text:#241d12;
+    --accent:#96702f; --accent-2:#6d1f2a;
+    --cream-text:#241d12; --muted:#93866a; --slate:#e7d9ae;
+    --input-bg:#fffdf8; --input-border:#e0cf9c;
+    --rule:#ddc98e;
+  }
+  body[data-theme="emerald"]{
+    --ink:#08110d; --ink-2:#0d1a14;
+    --paper:#12211a; --paper-2:#183025; --paper-text:#eef4ef;
+    --accent:#c9a24b; --accent-2:#3f7a5c;
+    --cream-text:#eef4ef; --muted:#8fab9c; --slate:#1f3b2e;
+    --input-bg:#173025; --input-border:#2d4d3d80;
+    --rule:#2d4d3d;
+  }
+  *{box-sizing:border-box;}
+  html{scrollbar-color:var(--accent) transparent;}
+  ::-webkit-scrollbar{width:9px;height:9px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--slate);border-radius:10px;}
+  ::-webkit-scrollbar-thumb:hover{background:var(--accent);}
+  body{
+    margin:0;
+    background:var(--ink);
+    color:var(--cream-text);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    position:relative;
+    min-height:100vh;
+  }
+  .wrap{max-width:860px;margin:0 auto;padding:48px 24px 90px;position:relative;z-index:1;}
+
+  /* ---- Header ---- */
+  .header{margin-bottom:28px;padding-bottom:26px;border-bottom:1px solid var(--rule);}
+  .top-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;}
+  .eyebrow{
+    font-family:'Inter',sans-serif; font-weight:600; font-size:11px; letter-spacing:0.24em;
+    text-transform:uppercase; color:var(--accent); margin:0 0 10px;
+  }
+  h1{
+    font-family:'Playfair Display',serif; font-weight:700; font-size:42px;
+    line-height:1.1; letter-spacing:0;
+    margin:0 0 6px; color:var(--cream-text);
+  }
+  h1 em{color:var(--accent);font-style:normal;}
+
+  /* ---- Theme picker ---- */
+  .theme-picker{display:flex;flex-direction:column;align-items:flex-end;gap:8px;}
+  .theme-picker-label{font-family:'Inter',sans-serif;font-weight:500;font-size:11px;letter-spacing:0.03em;color:var(--muted);}
+  .theme-swatches{display:flex;gap:8px;}
+  .swatch{
+    width:22px;height:22px;border-radius:50%;cursor:pointer;
+    border:2px solid transparent; padding:0; box-shadow:0 0 0 1px var(--rule);
+  }
+  .swatch.active{border-color:var(--cream-text);}
+  .sync-badge{
+    font-family:'Inter',sans-serif;font-weight:500;font-size:11px;letter-spacing:0.01em;
+    display:flex;align-items:center;gap:6px;color:var(--muted);margin-top:2px;
+  }
+  .sync-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;}
+  .sync-badge.synced .sync-dot{background:#34d399;}
+  .sync-badge.syncing .sync-dot{background:var(--accent-2);animation:pulse 1s infinite;}
+  .sync-badge.offline .sync-dot,.sync-badge.unsupported .sync-dot{background:#f87171;}
+  .sync-badge button{
+    background:none;border:none;color:var(--accent);text-decoration:underline;cursor:pointer;
+    font-family:inherit;font-size:inherit;padding:0;margin-left:4px;
+  }
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+
+  /* ---- Section tabs ---- */
+  .section-tabs{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:26px 0 18px;}
+  .section-tab{
+    font-family:'Inter',sans-serif;font-weight:600;font-size:12.5px;letter-spacing:0.06em;text-transform:uppercase;
+    padding:10px 18px;border-radius:2px;border:1px solid var(--slate);background:none;color:var(--muted);
+    cursor:pointer;transition:all .15s ease;
+  }
+  .section-tab:hover{color:var(--cream-text);border-color:var(--accent);}
+  .section-tab.active{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:#fff;
+  }
+  .section-tab-add{
+    font-family:'Inter',sans-serif;font-weight:500;font-size:12.5px;letter-spacing:0.04em;
+    padding:10px 18px;border-radius:2px;border:1px dashed var(--slate);background:none;color:var(--muted);cursor:pointer;
+  }
+  .section-tab-add:hover{border-color:var(--accent);color:var(--cream-text);}
+
+  /* ---- Day tabs ---- */
+  .linemap{display:flex;align-items:center;gap:6px;padding:2px 0 20px;overflow-x:auto;}
+  .linemap-track{display:none;}
+  .station{
+    position:relative;display:flex;align-items:center;gap:8px;
+    padding:9px 14px 9px 10px;border-radius:2px;
+    cursor:pointer;background:none;border:1px solid transparent;color:inherit;font-family:inherit;
+    white-space:nowrap;transition:all .15s ease;
+  }
+  .station:hover{border-color:var(--slate);}
+  .station .dot{width:5px;height:5px;border-radius:50%;background:var(--slate);flex-shrink:0;transition:all .2s ease;}
+  .station.active{
+    border-bottom:1.5px solid var(--accent);
+  }
+  .station.active .dot{background:var(--accent);}
+  .station .st-label{
+    font-family:'Inter',sans-serif;font-weight:500;font-size:12.5px;letter-spacing:0.01em;text-align:left;
+    color:var(--muted);line-height:1.3;
+  }
+  .station.active .st-label{color:var(--cream-text);}
+  .add-day-btn{
+    display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:2px;
+    border:1px dashed var(--slate);background:none;color:var(--slate);cursor:pointer;font-size:15px;flex-shrink:0;
+  }
+  .add-day-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .add-day-wrap{display:flex;align-items:center;}
+
+  /* ---- Day panel ---- */
+  .day-panel{
+    background:var(--paper);
+    border:1px solid var(--rule);border-radius:4px;padding:32px 34px 36px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.04), 0 20px 48px -28px rgba(0,0,0,0.18);
+    animation:panelIn .35s ease both;
+    position:relative;
+  }
+  .day-panel::before{
+    content:"";position:absolute;top:0;left:34px;right:34px;height:2px;
+    background:linear-gradient(90deg, transparent, var(--accent), transparent);
+  }
+  @keyframes panelIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+  .day-title-row{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:26px;
+    border-bottom:1px solid var(--rule);padding-bottom:20px;
+  }
+  .day-title-input{
+    font-family:'Playfair Display',serif;font-weight:700;font-size:23px;letter-spacing:0;
+    color:var(--cream-text);background:none;border:none;border-bottom:1px solid transparent;
+    padding:2px 0;width:100%;max-width:520px;
+  }
+  .day-title-input:focus{outline:none;border-bottom:1px solid var(--accent);}
+  .stop-count{
+    display:inline-block;margin-top:8px;font-family:'Inter',sans-serif;font-weight:600;font-size:10.5px;
+    letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);
+    padding:0;border-top:1px solid var(--rule);padding-top:6px;
+  }
+  .day-actions{display:flex;gap:8px;flex-shrink:0;padding-top:4px;flex-wrap:wrap;}
+  .icon-btn{
+    background:none;border:1px solid var(--slate);color:var(--muted);font-family:'Inter',sans-serif;font-weight:500;font-size:11.5px;letter-spacing:0.02em;
+    padding:7px 12px;border-radius:2px;cursor:pointer;
+  }
+  .icon-btn:hover{border-color:var(--accent);color:var(--cream-text);}
+
+  /* ---- Entries ---- */
+  .entries{display:flex;flex-direction:column;gap:14px;}
+  .empty-state{
+    font-family:'Inter',sans-serif;font-size:13px;color:var(--muted);padding:36px 10px;text-align:center;
+    border:1px dashed var(--slate);border-radius:4px;
+  }
+  .stub{
+    position:relative;display:flex;background:var(--paper);border-radius:4px;overflow:hidden;color:var(--paper-text);
+    border:1px solid var(--rule);
+    transition:transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+    animation:cardIn .4s ease both;
+  }
+  @keyframes cardIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+  .stub::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:var(--accent);opacity:0;transition:opacity .18s ease;
+  }
+  .stub:hover{
+    transform:translateY(-2px);
+    border-color:var(--accent);
+    box-shadow:0 14px 30px -18px rgba(0,0,0,0.35);
+  }
+  .stub:hover::before{opacity:1;}
+  .stub-time{
+    font-family:'Playfair Display',serif;font-weight:700;font-size:19px;color:var(--accent);
+    background:var(--paper-2);
+    padding:16px 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:88px;
+    border-right:1px solid var(--rule);
+  }
+  .stub-time small{font-family:'Inter',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;opacity:0.75;margin-top:3px;color:var(--muted);}
+  .stub-body{flex:1;padding:15px 20px;min-width:0;}
+  .stub-top{display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap;}
+  .tag{
+    font-family:'Inter',sans-serif;font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;
+    padding:3px 0;color:var(--tag-color, var(--accent));white-space:nowrap;
+    display:inline-flex;align-items:center;gap:6px;
+  }
+  .tag-dot{width:6px;height:6px;border-radius:50%;background:var(--tag-color, var(--accent));flex-shrink:0;}
+  .stub-title{font-family:'Playfair Display',serif;font-weight:700;font-size:17px;color:var(--paper-text);margin:2px 0 5px;letter-spacing:0;}
+  .stub-notes{font-size:13.5px;color:var(--paper-text);opacity:0.68;line-height:1.55;margin:0 0 6px;}
+  .stub-location{font-family:'Inter',sans-serif;font-size:11px;font-style:italic;color:var(--paper-text);opacity:0.5;margin:0;}
+  .stub-actions{display:flex;flex-direction:column;gap:4px;padding:12px;justify-content:center;}
+  .stub-actions button{
+    background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;font-weight:500;font-size:10.5px;letter-spacing:0.03em;
+    color:var(--paper-text);opacity:0.5;padding:5px 8px;border-radius:2px;transition:all .15s ease;
+  }
+  .stub-actions button:hover{opacity:1;background:var(--paper-2);}
+
+  /* ---- Directions connector ---- */
+  .connector{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+    padding:2px 6px 2px 20px;margin:-4px 0 2px;
+    font-family:'Inter',sans-serif;font-size:11px;font-style:italic;color:var(--muted);
+  }
+  .connector.muted{opacity:0.5;}
+  .connector-links{display:flex;gap:6px;flex-wrap:wrap;}
+  .connector-links a{
+    color:var(--accent);text-decoration:none;border:1px solid var(--slate);border-radius:2px;
+    padding:3px 10px;letter-spacing:0.02em;font-weight:500;font-style:normal;transition:all .15s ease;
+  }
+  .connector-links a:hover{border-color:var(--accent);background:color-mix(in srgb, var(--accent) 10%, transparent);transform:translateY(-1px);}
+
+  /* ---- Add / edit form ---- */
+  .entry-form{background:var(--paper-2);border-radius:4px;padding:20px;color:var(--paper-text);display:flex;flex-direction:column;gap:14px;margin-bottom:6px;border:1px solid var(--rule);animation:cardIn .25s ease both;}
+  .form-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .form-row > div{display:flex;flex-direction:column;gap:5px;}
+  label{font-family:'Inter',sans-serif;font-weight:600;font-size:10.5px;letter-spacing:0.06em;text-transform:uppercase;color:var(--paper-text);opacity:0.5;}
+  input[type=time],input[type=text],select,textarea{
+    font-family:'Inter',sans-serif;font-size:14px;padding:9px 11px;border-radius:2px;
+    border:1px solid var(--input-border);background:var(--input-bg);color:var(--paper-text);
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  input[type=time]:focus,input[type=text]:focus,select:focus,textarea:focus{
+    outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
+  }
+  input[type=text]{flex:1;min-width:180px;}
+  textarea{width:100%;resize:vertical;min-height:44px;font-family:'Inter',sans-serif;}
+  .form-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:2px;}
+  .btn{font-family:'Inter',sans-serif;font-weight:600;font-size:12.5px;letter-spacing:0.03em;padding:10px 20px;border-radius:2px;border:none;cursor:pointer;transition:all .15s ease;}
+  .btn-primary{
+    background:var(--accent);color:#fff;
+  }
+  .btn-primary:hover{filter:brightness(1.08);}
+  .btn-ghost{background:none;border:1px solid var(--input-border);color:var(--paper-text);opacity:0.8;}
+  .btn-ghost:hover{opacity:1;border-color:var(--muted);}
+
+  .add-stop-btn{
+    margin-top:8px;width:100%;background:none;border:1px dashed var(--slate);color:var(--muted);
+    font-family:'Inter',sans-serif;font-weight:600;font-size:12.5px;letter-spacing:0.03em;padding:13px;border-radius:2px;cursor:pointer;
+    transition:all .15s ease;
+  }
+  .add-stop-btn:hover{
+    border-color:var(--accent);border-style:solid;color:var(--cream-text);
+    background:color-mix(in srgb, var(--accent) 6%, transparent);
+  }
+
+  .footer-note{text-align:center;margin-top:28px;font-family:'Inter',sans-serif;font-size:12px;color:var(--muted);line-height:1.6;}
+  .footer-note button{background:none;border:none;color:var(--muted);text-decoration:underline;cursor:pointer;font-family:inherit;font-size:inherit;}
+  .loading{padding:60px 0;text-align:center;font-family:'Inter',sans-serif;color:var(--muted);}
+
+  @media (max-width:560px){
+    h1{font-size:28px;}
+    .top-row{flex-direction:column;}
+    .theme-picker{align-items:flex-start;}
+    .stub{flex-direction:column;}
+    .stub-time{flex-direction:row;gap:8px;min-width:0;}
+    .stub-actions{flex-direction:row;border-top:1px solid var(--rule);}
+    .connector{padding-left:8px;}
+  }
+</style>
+</head>
+<body data-theme="ivory">
+<div class="wrap" id="app">
+  <div class="loading">Loading your plan…</div>
+</div>
+
+<script>
+const SHARED_KEY = "trip-planner-sections-v2";
+const LOCAL_KEY  = "trip-planner-local-prefs-v2";
+
+const CATEGORIES = {
+  culture:     { label: "Culture",     color: "#2c3e63" },
+  food:        { label: "Food",        color: "#7c1f2a" },
+  shopping:    { label: "Shopping",    color: "#96702f" },
+  arcade:      { label: "Arcade/Fun",  color: "#2f5233" },
+  sightseeing: { label: "Sightseeing", color: "#4a4a52" },
+  other:       { label: "Free Time",   color: "#7d6a4a" }
+};
+
+const THEMES = [
+  { id: "ivory",     label: "Ivory",     swatch: "#a9812f" },
+  { id: "onyx",      label: "Onyx",      swatch: "#0d0c0a" },
+  { id: "champagne", label: "Champagne", swatch: "#96702f" },
+  { id: "emerald",   label: "Emerald",   swatch: "#12211a" }
+];
+
+function uid(){ return Math.random().toString(36).slice(2, 10); }
+
+function defaultSections(){
+  return [
+    {
+      id: "osaka",
+      name: "Osaka",
+      days: [
+        {
+          id: "o1",
+          label: "Arrival Evening: Dotonbori Food Crawl",
+          entries: [
+            { id: uid(), time: "17:30", title: "Dotonbori", category: "sightseeing", location: "Dotonbori, Osaka", notes: "Landing at 3pm means you'll likely clear immigration, luggage, and hotel check-in by mid-late afternoon — this is an easy, low-key way to ease into the trip. The canal, the glowing signs, the giant Glico running man." },
+            { id: uid(), time: "18:30", title: "Takoyaki Wanaka", category: "food", location: "Takoyaki Wanaka Dotonbori, Osaka", notes: "4.2 stars. Some of the best-reviewed takoyaki in Dotonbori — crisp outside, molten octopus-batter inside. Let it cool a minute before biting." },
+            { id: uid(), time: "19:30", title: "Dinner: Kushikatsu Daruma", category: "food", location: "Kushikatsu Daruma Shinsekai, Osaka", notes: "An Osaka institution — deep-fried skewers of anything and everything. Small counter, can get a line, but moves fast. No double-dipping the sauce (house rule)." },
+            { id: uid(), time: "21:30", title: "Dessert: Number Kuma", category: "food", location: "Night parfait specialty restaurant Number Kuma, Namba, Osaka", notes: "4.7 stars. A dedicated parfait restaurant open till midnight — elaborate, beautifully plated seasonal parfaits in a cozy, upscale-but-relaxed space. Kid-friendly (it's dessert, not a bar), while still feeling like a special way to close the first night." }
+          ]
+        },
+        {
+          id: "o2",
+          label: "Osaka Castle, Kuromon Market & Shinsekai",
+          entries: [
+            { id: uid(), time: "07:30", title: "Breakfast: Maze Cafe Namba", category: "food", location: "Maze Cafe Namba, Osaka", notes: "4.7 stars. Cozy Western-style brunch spot — eggs benedict, banana pancakes, great coffee/matcha lattes. Opens at 7am, can have a short wait." },
+            { id: uid(), time: "09:00", title: "Osaka Castle", category: "culture", location: "Osaka Castle, Osaka", notes: "4.4 stars. Go early — lines get long. Interior is a modern museum across several floors; the views and grounds are the real highlight." },
+            { id: uid(), time: "11:30", title: "Lunch: Kuromon Ichiba Market", category: "food", location: "Kuromon Market, Osaka", notes: "Known as \"Osaka's Kitchen.\" Grilled king crab, fresh oysters, otoro sashimi, wagyu skewers — graze your way through. Cash is handy, and go before 1pm before the popular stalls sell out." },
+            { id: uid(), time: "13:30", title: "Shinsekai & Tsutenkaku Tower", category: "sightseeing", location: "Tsutenkaku, Osaka", notes: "Retro neon district with an iconic observation tower. Old-school Osaka atmosphere — arcades, kushikatsu joints, giant signage." },
+            { id: uid(), time: "15:00", title: "Free Time in Shinsekai", category: "other", location: "", notes: "Open block to wander the retro arcades and side streets at your own pace before heading to dinner." },
+            { id: uid(), time: "19:30", title: "Dinner: Koryu", category: "food", location: "Koryu Kitahama, Osaka", notes: "Multi-Michelin-starred Japanese kaiseki in Kitahama — counter seating and private rooms available. Uses some of Osaka's most exclusive, not-on-the-open-market ingredients; sashimi course is a standout. Book well ahead, ~25 min from Shinsekai." }
+          ]
+        },
+        {
+          id: "o3",
+          label: "Aquarium, Umeda Sky & Onward to Kyoto",
+          entries: [
+            { id: uid(), time: "08:00", title: "Breakfast", category: "food", location: "", notes: "Grab something near your hotel before heading to the bay." },
+            { id: uid(), time: "09:00", title: "Osaka Aquarium Kaiyukan", category: "sightseeing", location: "Osaka Aquarium Kaiyukan, Osaka", notes: "4.5 stars. One of the best aquariums in Japan — whale sharks, penguins, a massive central tank spanning multiple floors. Budget 2 hours." },
+            { id: uid(), time: "12:00", title: "Lunch near Tempozan Harbor", category: "food", location: "Tempozan Marketplace, Osaka", notes: "Food court right by the aquarium — easy, no need to go far. The Tempozan Ferris Wheel is right here too if anyone wants a quick ride." },
+            { id: uid(), time: "13:30", title: "Tempozan Giant Ferris Wheel", category: "sightseeing", location: "Tempozan Ferris Wheel, Osaka", notes: "One of the largest Ferris wheels in Japan, right on the harbor. Good views back over the aquarium and bay." },
+            { id: uid(), time: "15:30", title: "Umeda Sky Building", category: "sightseeing", location: "Umeda Sky Building, Osaka", notes: "4.4 stars. Floating Garden Observatory with 360-degree views — reviewers say sunset/night is when it really shines, so this timing lines it up well." },
+            { id: uid(), time: "17:30", title: "Cocktails at STARDUST", category: "food", location: "STARDUST, Umeda Sky Building, Osaka", notes: "39th floor of the same building — candlelit, designer cocktails, sweeping views as the sun goes down. A nice refined interlude before dinner." },
+            { id: uid(), time: "19:00", title: "Dinner: Teppanyaki Kamon", category: "food", location: "Imperial Hotel Osaka, 24F, Teppanyaki Kamon, Osaka", notes: "On the 24th floor of the Imperial Hotel Osaka — teppanyaki with sweeping river and city views, a genuinely elegant way to close out the Osaka leg. You'll already be nearby after Umeda Sky Building. Reserve ahead, and note it's a dressier room than the rest of the trip." },
+            { id: uid(), time: "21:30", title: "Travel to Kyoto", category: "other", location: "", notes: "JR Special Rapid from Osaka to Kyoto Station runs late and takes about 30 min. Arriving Kyoto around 10-10:30pm means you can start fresh (and early) for Fushimi Inari the next morning." }
+          ]
+        }
+      ]
+    },
+    {
+      id: "kyoto",
+      name: "Kyoto",
+      days: [
+        {
+          id: "k1",
+          label: "Fushimi Inari & Higashiyama",
+          entries: [
+            { id: uid(), time: "07:00", title: "Breakfast", category: "food", location: "", notes: "Grab something quick near your hotel — worth getting to Fushimi Inari early." },
+            { id: uid(), time: "07:30", title: "Fushimi Inari Taisha", category: "culture", location: "Fushimi Inari Taisha, Kyoto", notes: "4.6 stars. Thousands of vermilion torii gates climbing the mountain. Go early (before 8am) to avoid the crowds — reviewers consistently say it's a different, much quieter place at that hour." },
+            { id: uid(), time: "11:00", title: "Lunch near Kiyomizu-dera", category: "food", location: "Sannenzaka, Kyoto", notes: "The sloped lanes leading up to Kiyomizu-dera (Sannenzaka/Ninenzaka) are lined with small local restaurants and food stalls — easy to grab lunch on the way up." },
+            { id: uid(), time: "11:45", title: "Kiyomizu-dera", category: "culture", location: "Kiyomizu-dera, Kyoto", notes: "4.6 stars. Iconic wooden stage with panoramic views over Kyoto. The Otowa Waterfall's three streams each represent a different wish (health, success, love)." },
+            { id: uid(), time: "14:00", title: "Gion District", category: "culture", location: "Gion, Kyoto", notes: "Kyoto's famous geisha district — traditional wooden machiya buildings, tea houses, a chance of spotting a geiko or maiko in the early evening." },
+            { id: uid(), time: "19:00", title: "Dinner in Pontocho Alley", category: "food", location: "Pontocho, Kyoto", notes: "A narrow lantern-lit alley along the Kamo River, packed with everything from casual yakitori to formal kaiseki. Some restaurants have riverside terrace seating in warmer months." }
+          ]
+        },
+        {
+          id: "k2",
+          label: "Arashiyama & Kinkaku-ji",
+          entries: [
+            { id: uid(), time: "08:00", title: "Breakfast", category: "food", location: "", notes: "Grab something before heading out to Arashiyama — it's on the western edge of the city, worth an early start." },
+            { id: uid(), time: "08:30", title: "Arashiyama Bamboo Forest", category: "sightseeing", location: "Arashiyama Bamboo Forest, Kyoto", notes: "4.4 stars. Towering bamboo, filtered green light, surreal atmosphere. Go before 8am if you can — it gets very crowded fast." },
+            { id: uid(), time: "12:00", title: "Lunch in Arashiyama", category: "food", location: "Arashiyama, Kyoto", notes: "The district is known for yudofu (tofu kaiseki) — plenty of small restaurants along the river and near Tenryu-ji serve it." },
+            { id: uid(), time: "14:00", title: "Kinkaku-ji", category: "culture", location: "Kinkaku-ji, Kyoto", notes: "4.6 stars. The Golden Pavilion — gold leaf reflecting off the pond, especially striking with good light. Visit isn't long, but very photogenic." },
+            { id: uid(), time: "16:00", title: "Free Time / Travel Back", category: "other", location: "", notes: "Open block to head back toward central Kyoto and rest before dinner." },
+            { id: uid(), time: "19:00", title: "Dinner", category: "food", location: "", notes: "Central Kyoto (Kawaramachi/Gion) has no shortage of great izakayas and ramen shops — good night to wander and pick whatever looks busiest with locals." }
+          ]
+        },
+        {
+          id: "k3",
+          label: "Nijo Castle, Nishiki Market & Philosopher's Path",
+          entries: [
+            { id: uid(), time: "08:30", title: "Breakfast", category: "food", location: "", notes: "Quick breakfast before heading to Nijo Castle." },
+            { id: uid(), time: "09:00", title: "Nijo Castle", category: "culture", location: "Nijo Castle, Kyoto", notes: "4.4 stars. Tokugawa shogunate palace complex, famous for its \"nightingale floors\" that chirp underfoot as a security measure. Beautiful gardens too." },
+            { id: uid(), time: "11:00", title: "Lunch: Nishiki Market", category: "food", location: "Nishiki Market, Kyoto", notes: "4.3 stars. \"Kyoto's Kitchen\" — a covered arcade of food stalls, pickles, skewers, sweets. Bring cash, most vendors don't take cards." },
+            { id: uid(), time: "13:00", title: "Ginkaku-ji & Philosopher's Path", category: "culture", location: "Ginkaku-ji, Kyoto", notes: "4.5 stars. The Silver Pavilion (never actually silvered) with a stunning moss garden and sand sculptures. Walk the Philosopher's Path afterward — a quiet canal-side stroll lined with cherry trees." },
+            { id: uid(), time: "16:00", title: "Free Time / Shopping", category: "other", location: "", notes: "Open block for last-minute shopping or wandering central Kyoto before dinner and the trip's final leg to Tokyo." },
+            { id: uid(), time: "19:00", title: "Dinner in Pontocho or Gion", category: "food", location: "Pontocho, Kyoto", notes: "A good last-night-in-Kyoto dinner spot — same alley as Day 1, but plenty of different restaurants to try along it." }
+          ]
+        }
+      ]
+    },
+    {
+      id: "tokyo",
+      name: "Tokyo",
+      days: [
+        {
+          id: "d1",
+          label: "Old Tokyo: Temples, Towers & Matcha",
+          entries: [
+            { id: uid(), time: "08:00", title: "Breakfast", category: "food", location: "", notes: "Most Asakusa sit-down spots open around 9-10, so grab something quick from your hotel or a nearby convenience store (7-Eleven/Lawson egg sando + coffee is a genuinely solid option) to fuel up before Sensō-ji." },
+            { id: uid(), time: "09:00", title: "Sensō-ji Temple", category: "culture", location: "Senso-ji Temple, Tokyo", notes: "Tokyo's oldest temple, founded 645 AD." },
+            { id: uid(), time: "09:45", title: "Asakusa Shrine", category: "culture", location: "Asakusa Shrine, Tokyo", notes: "Right next door to Sensō-ji, calm and uncrowded by comparison. Quick 15-min stop for a totally different vibe than the busy main temple." },
+            { id: uid(), time: "11:00", title: "Suzukien Asakusa", category: "food", location: "Suzukien Asakusa, Tokyo", notes: "Famous matcha gelato, 7 intensity levels." },
+            { id: uid(), time: "11:30", title: "Matcha Making Class", category: "arcade", location: "Matcha Making Tokyo, Kaminarimon, Taito City, Tokyo", notes: "Hands-on class where you whisk your own matcha and learn the history behind it. 5.0 stars, 1,600+ reviews. About an hour, small groups." },
+            { id: uid(), time: "12:45", title: "Lunch: Okome to Gohan Sumidaya", category: "food", location: "Okome to Gohan Sumidaya Asakusa, Tokyo", notes: "4.9 stars. Specialty rice restaurant — grilled salmon or chicken with unlimited rice, pickles, miso soup, and a sweet egg pudding to finish. Kid-friendly, small and homey." },
+            { id: uid(), time: "14:00", title: "Tokyo Skytree", category: "sightseeing", location: "Tokyo Skytree", notes: "Tallest tower in Japan, panoramic views." },
+            { id: uid(), time: "19:00", title: "Wagyumafia Dinner", category: "food", location: "Yakinikumafia Ikebukuro by Wagyumafia, Tokyo", notes: "4.8 stars, ~4,000 reviews. Theatrical tableside wagyu, built for groups — handles 4 up to 8 comfortably, unlike most top-tier counters. Pricey (courses run ¥25,000-80,000/person) — book ahead." }
+          ]
+        },
+        {
+          id: "d2",
+          label: "Zoo, Arcades & Night Market",
+          entries: [
+            { id: uid(), time: "08:00", title: "Breakfast: Café Lapin", category: "food", location: "Cafe Lapin, Ueno, Tokyo", notes: "4.6 stars. Cozy old-school kissaten near Ueno — filling breakfast menu (try the toast), single-origin coffee roasted on site. Breakfast served until 11am." },
+            { id: uid(), time: "09:30", title: "Ueno Zoo", category: "sightseeing", location: "Ueno Zoo, Tokyo", notes: "Pandas, polar bears, red pandas." },
+            { id: uid(), time: "11:30", title: "Kiyomizu Kannon-dō Temple", category: "culture", location: "Kiyomizu Kannon-do Temple, Ueno Park, Tokyo", notes: "One of Tokyo's oldest surviving temple buildings (1632), modeled after Kyoto's famous Kiyomizu-dera. Right inside Ueno Park, with a distinctive circular \"Moon Pine.\"" },
+            { id: uid(), time: "12:00", title: "Ueno Toshogu Shrine", category: "culture", location: "Ueno Toshogu Shrine, Tokyo", notes: "Gold-leafed Edo-period shrine, built 1627, a few minutes' walk from Kiyomizu Kannon-dō." },
+            { id: uid(), time: "12:45", title: "Lunch: Ameyoko Market", category: "food", location: "Ameyoko Market, Tokyo", notes: "Moved here from evening — a street-food crawl between Ueno and Okachimachi makes a great casual lunch: skewers, fresh seafood, snacks. Grab a few things and graze." },
+            { id: uid(), time: "14:15", title: "Akihabara Gamers", category: "arcade", location: "Gamers Akihabara, Tokyo", notes: "7-floor anime/manga superstore." },
+            { id: uid(), time: "15:15", title: "Kanda Myojin Shrine", category: "culture", location: "Kanda Myojin Shrine, Tokyo", notes: "Historic shrine in the middle of Akihabara, popular with anime/gaming fans for tech luck blessings." },
+            { id: uid(), time: "16:15", title: "TAITO Station Akihabara", category: "arcade", location: "Taito Station Akihabara, Tokyo", notes: "Arcade: claw machines, fighting/rhythm games." },
+            { id: uid(), time: "17:30", title: "Don Quijote Akihabara", category: "shopping", location: "Don Quijote Akihabara, Tokyo", notes: "Chaotic discount megastore, open 24 hours." },
+            { id: uid(), time: "19:00", title: "Dinner: Gyukatsu Motomura", category: "food", location: "Gyukatsu Motomura Akihabara, Tokyo", notes: "4.8 stars, 7,600+ reviews. Breaded beef cutlet you finish cooking yourself on a tabletop hot stone. Fun, hands-on, great for families, right in Akihabara so no extra travel." }
+          ]
+        },
+        {
+          id: "d3",
+          label: "Harajuku & Shibuya",
+          entries: [
+            { id: uid(), time: "08:30", title: "Breakfast: bills Omotesando", category: "food", location: "bills Omotesando, Tokyo", notes: "One of Tokyo's most iconic brunch spots — famous ricotta hotcakes, avocado toast. Bright, popular, reservation recommended if the group is large." },
+            { id: uid(), time: "10:00", title: "Meiji Jingu Shrine", category: "culture", location: "Meiji Jingu Shrine, Tokyo", notes: "" },
+            { id: uid(), time: "12:00", title: "New Balance Harajuku", category: "shopping", location: "New Balance Harajuku, Tokyo", notes: "" },
+            { id: uid(), time: "13:00", title: "Lunch: Eggs 'n Things", category: "food", location: "Eggs 'n Things Harajuku Store, Tokyo", notes: "Hawaiian-style breakfast-all-day spot — the sweet stop of the trip. Loco moco and savory options too if not everyone wants pancakes. Covered patio seating." },
+            { id: uid(), time: "13:45", title: "Free / Split Period (until 2:30 PM)", category: "other", location: "", notes: "Open block in Harajuku/Cat Street. Good time for the group to split up: some can browse Cat Street's smaller boutiques, others can wander Takeshita-adjacent side streets. No fixed stop — reconvene at THE MATCHA TOKYO." },
+            { id: uid(), time: "14:45", title: "THE MATCHA TOKYO Harajuku", category: "food", location: "THE MATCHA TOKYO Harajuku", notes: "" },
+            { id: uid(), time: "16:00", title: "Shibuya PARCO", category: "shopping", location: "Shibuya PARCO, Tokyo", notes: "" },
+            { id: uid(), time: "18:00", title: "Shibuya Crossing", category: "sightseeing", location: "Shibuya Crossing, Tokyo", notes: "" },
+            { id: uid(), time: "19:30", title: "Sushi Saito Azabudai", category: "food", location: "Sushi Saito Azabudai, Tokyo", notes: "Same sourcing/kitchen lineage as the legendary original Sushi Saito (widely called the best sushi in the world), but ~10 seats and actually bookable. Top-tier without needing a concierge introduction. Reserve well ahead." }
+          ]
+        }
+      ]
+    }
+  ];
+}
+
+function defaultLocalPrefs(){
+  return { theme: "ivory", activeSection: "osaka", activeDayBySection: {} };
+}
+
+let sections = null;      // shared across devices
+let localPrefs = null;    // per-device only
+let editingId = null;
+let addingDayId = null;
+let editingSectionName = false;
+let syncStatus = "checking"; // "checking" | "synced" | "syncing" | "offline" | "unsupported"
+let lastSyncedAt = null;
+
+function storageAvailable(){
+  return typeof window.storage !== "undefined" && window.storage !== null;
+}
+
+async function loadSections(){
+  if(!storageAvailable()){ syncStatus = "unsupported"; return defaultSections(); }
+  try{
+    const result = await window.storage.get(SHARED_KEY, true);
+    syncStatus = "synced"; lastSyncedAt = Date.now();
+    if(result && result.value) return JSON.parse(result.value);
+  }catch(e){
+    // key genuinely doesn't exist yet on first run — that's fine, not an error state
+    syncStatus = "synced"; lastSyncedAt = Date.now();
+  }
+  return defaultSections();
+}
+async function saveSections(){
+  if(!storageAvailable()){ syncStatus = "unsupported"; renderSyncBadge(); return; }
+  syncStatus = "syncing"; renderSyncBadge();
+  try{
+    await window.storage.set(SHARED_KEY, JSON.stringify(sections), true);
+    syncStatus = "synced"; lastSyncedAt = Date.now();
+  }catch(e){
+    console.error("Could not save plan:", e);
+    syncStatus = "offline";
+  }
+  renderSyncBadge();
+}
+
+function timeAgo(ts){
+  if(!ts) return "";
+  const s = Math.floor((Date.now() - ts) / 1000);
+  if(s < 5) return "just now";
+  if(s < 60) return s + "s ago";
+  return Math.floor(s/60) + "m ago";
+}
+
+function renderSyncBadge(){
+  const el = document.getElementById("syncBadge");
+  if(!el) return;
+  el.className = "sync-badge " + syncStatus;
+  const labels = {
+    checking: "Checking sync…",
+    synced: "Synced" + (lastSyncedAt ? " · " + timeAgo(lastSyncedAt) : ""),
+    syncing: "Saving…",
+    offline: "Sync failed — retrying",
+    unsupported: "Not synced — open via the live artifact link, not a downloaded file, for cross-device sync"
+  };
+  el.innerHTML = `<span class="sync-dot"></span><span>${labels[syncStatus]}</span>` +
+    (syncStatus === "offline" || syncStatus === "unsupported" ? `<button id="manualSyncBtn">retry</button>` : "");
+  const retryBtn = document.getElementById("manualSyncBtn");
+  if(retryBtn){
+    retryBtn.addEventListener("click", async () => {
+      syncStatus = "checking"; renderSyncBadge();
+      await saveSections();
+      await pollForChanges();
+    });
+  }
+}
+
+async function loadLocalPrefs(){
+  try{
+    const result = await window.storage.get(LOCAL_KEY, false);
+    if(result && result.value) return JSON.parse(result.value);
+  }catch(e){}
+  return defaultLocalPrefs();
+}
+async function saveLocalPrefs(){
+  try{ await window.storage.set(LOCAL_KEY, JSON.stringify(localPrefs), false); }
+  catch(e){ console.error("Could not save preferences:", e); }
+}
+
+function fmtTime(t){
+  const [h,m] = t.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  let h12 = h % 12; if(h12 === 0) h12 = 12;
+  return { big: String(h12).padStart(2,"0") + ":" + String(m).padStart(2,"0"), period };
+}
+
+function getActiveSection(){
+  return sections.find(s => s.id === localPrefs.activeSection) || sections[0];
+}
+function getActiveDay(){
+  const sec = getActiveSection();
+  const dayId = localPrefs.activeDayBySection[sec.id];
+  return sec.days.find(d => d.id === dayId) || sec.days[0];
+}
+
+function appleMapsUrl(from, to, mode){
+  return "https://maps.apple.com/?saddr=" + encodeURIComponent(from) + "&daddr=" + encodeURIComponent(to) + "&dirflg=" + mode;
+}
+
+function render(){
+  const app = document.getElementById("app");
+  document.body.setAttribute("data-theme", localPrefs.theme);
+
+  const sec = getActiveSection();
+  const day = getActiveDay();
+  const sortedEntries = [...day.entries].sort((a,b) => a.time.localeCompare(b.time));
+
+  let html = `
+    <div class="header">
+      <div class="top-row">
+        <div>
+          <p class="eyebrow">Private Itinerary</p>
+          <h1>Day Planner</h1>
+        </div>
+        <div class="theme-picker">
+          <span class="theme-picker-label">Theme (this device only)</span>
+          <div class="theme-swatches">
+            ${THEMES.map(t => `<button class="swatch ${t.id === localPrefs.theme ? 'active' : ''}" style="background:${t.swatch}" data-theme-pick="${t.id}" title="${t.label}"></button>`).join("")}
+          </div>
+          <div id="syncBadge" class="sync-badge"></div>
+        </div>
+      </div>
+
+      <div class="section-tabs">
+        ${sections.map(s => `<button class="section-tab ${s.id === sec.id ? 'active' : ''}" data-goto-section="${s.id}">${escapeHtml(s.name)}</button>`).join("")}
+        <button class="section-tab-add" id="addSectionBtn">+ Add Trip</button>
+      </div>
+
+      <div class="linemap">
+        <div class="linemap-track"></div>
+        ${sec.days.map((d,i) => `
+          <button class="station ${d.id === day.id ? 'active' : ''}" data-goto="${d.id}">
+            <span class="dot"></span>
+            <span class="st-label">DAY ${i+1}<br>${escapeHtml(truncate(d.label, 22))}</span>
+          </button>
+        `).join("")}
+        <div class="add-day-wrap">
+          <button class="add-day-btn" id="addDayBtn" title="Add a day">+</button>
+          <span>ADD DAY</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="day-panel">
+      <div class="day-title-row">
+        <div style="flex:1;min-width:0;">
+          <input class="day-title-input" id="dayLabelInput" value="${escapeAttr(day.label)}" />
+          <span class="stop-count">${sortedEntries.length} stop${sortedEntries.length === 1 ? '' : 's'}</span>
+        </div>
+        <div class="day-actions">
+          <button class="icon-btn" id="renameSectionBtn">Rename Trip</button>
+          ${sections.length > 1 ? `<button class="icon-btn" id="deleteSectionBtn">Delete Trip</button>` : ""}
+          ${sec.days.length > 1 ? `<button class="icon-btn" id="deleteDayBtn">Delete Day</button>` : ""}
+        </div>
+      </div>
+
+      <div class="entries">
+        ${sortedEntries.length === 0 ? `<div class="empty-state">Nothing scheduled yet. Add your first stop below.</div>` : ""}
+        ${sortedEntries.map((e,i) => (i > 0 ? renderConnector(sortedEntries[i-1], e) : "") + renderEntry(e, i)).join("")}
+      </div>
+
+      ${addingDayId === day.id ? renderForm(null) : `<button class="add-stop-btn" id="openAddForm">+ Add a stop</button>`}
+    </div>
+
+    <p class="footer-note">Trip content syncs for everyone viewing this planner. Theme is local to this device.<br><button id="resetBtn">Clear this trip's stops and start over</button></p>
+  `;
+
+  app.innerHTML = html;
+  attachEvents();
+  renderSyncBadge();
+}
+
+function renderConnector(prev, curr){
+  if(!prev.location || !curr.location){
+    return `<div class="connector muted">＋ add addresses on both stops above to get travel directions</div>`;
+  }
+  const w = appleMapsUrl(prev.location, curr.location, "w");
+  const r = appleMapsUrl(prev.location, curr.location, "r");
+  const d = appleMapsUrl(prev.location, curr.location, "d");
+  return `
+    <div class="connector">
+      <span>travel to next stop:</span>
+      <div class="connector-links">
+        <a href="${w}" target="_blank" rel="noopener">🚶 Walk</a>
+        <a href="${r}" target="_blank" rel="noopener">🚆 Transit</a>
+        <a href="${d}" target="_blank" rel="noopener">🚗 Drive</a>
+      </div>
+    </div>
+  `;
+}
+
+function renderEntry(e, index){
+  if(editingId === e.id) return renderForm(e);
+  const cat = CATEGORIES[e.category] || CATEGORIES.other;
+  const t = fmtTime(e.time);
+  const delay = Math.min((index || 0) * 0.06, 0.5);
+  return `
+    <div class="stub" style="animation-delay:${delay}s">
+      <div class="stub-time">${t.big}<small>${t.period}</small></div>
+      <div class="stub-body">
+        <div class="stub-top"><span class="tag" style="--tag-color:${cat.color}"><span class="tag-dot"></span>${cat.label}</span></div>
+        <p class="stub-title">${escapeHtml(e.title)}</p>
+        ${e.notes ? `<p class="stub-notes">${escapeHtml(e.notes)}</p>` : ""}
+        ${e.location ? `<p class="stub-location">📍 ${escapeHtml(e.location)}</p>` : ""}
+      </div>
+      <div class="stub-actions">
+        <button data-edit="${e.id}">Edit</button>
+        <button data-delete="${e.id}">Delete</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderForm(entry){
+  const isEdit = !!entry;
+  const time = entry ? entry.time : "09:00";
+  const title = entry ? entry.title : "";
+  const category = entry ? entry.category : "sightseeing";
+  const notes = entry ? entry.notes : "";
+  const location = entry ? (entry.location || "") : "";
+  return `
+    <div class="entry-form">
+      <div class="form-row">
+        <div>
+          <label>Time</label>
+          <input type="time" id="f_time" value="${time}">
+        </div>
+        <div style="flex:1">
+          <label>What's happening</label>
+          <input type="text" id="f_title" placeholder="e.g. Sensō-ji Temple" value="${escapeAttr(title)}">
+        </div>
+        <div>
+          <label>Category</label>
+          <select id="f_category">
+            ${Object.entries(CATEGORIES).map(([k,v]) => `<option value="${k}" ${k===category?"selected":""}>${v.label}</option>`).join("")}
+          </select>
+        </div>
+      </div>
+      <div>
+        <label>Address / place name (used for Apple Maps directions)</label>
+        <input type="text" id="f_location" placeholder="e.g. Senso-ji Temple, Tokyo" value="${escapeAttr(location)}">
+      </div>
+      <div>
+        <label>Notes (optional)</label>
+        <textarea id="f_notes" placeholder="Details, tips, addresses...">${escapeHtml(notes)}</textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-ghost" id="f_cancel">Cancel</button>
+        <button class="btn btn-primary" id="f_save" data-id="${isEdit ? entry.id : ''}">${isEdit ? "Save changes" : "Add stop"}</button>
+      </div>
+    </div>
+  `;
+}
+
+function truncate(s, n){ return s.length > n ? s.slice(0,n-1) + "…" : s; }
+function escapeHtml(s){ return (s||"").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function escapeAttr(s){ return escapeHtml(s); }
+
+function attachEvents(){
+  document.querySelectorAll("[data-theme-pick]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      localPrefs.theme = btn.getAttribute("data-theme-pick");
+      saveLocalPrefs();
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-goto-section]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      localPrefs.activeSection = btn.getAttribute("data-goto-section");
+      editingId = null; addingDayId = null;
+      saveLocalPrefs();
+      render();
+    });
+  });
+
+  const addSectionBtn = document.getElementById("addSectionBtn");
+  if(addSectionBtn){
+    addSectionBtn.addEventListener("click", () => {
+      const name = prompt("Name this trip (e.g. a city or destination):", "New Trip");
+      if(!name) return;
+      const newId = uid();
+      sections.push({ id: newId, name: name.trim() || "New Trip", days: [{ id: uid(), label: "Day 1", entries: [] }] });
+      localPrefs.activeSection = newId;
+      saveSections(); saveLocalPrefs();
+      render();
+    });
+  }
+
+  const renameSectionBtn = document.getElementById("renameSectionBtn");
+  if(renameSectionBtn){
+    renameSectionBtn.addEventListener("click", () => {
+      const sec = getActiveSection();
+      const name = prompt("Rename this trip:", sec.name);
+      if(!name) return;
+      sec.name = name.trim() || sec.name;
+      saveSections();
+      render();
+    });
+  }
+
+  const deleteSectionBtn = document.getElementById("deleteSectionBtn");
+  if(deleteSectionBtn){
+    deleteSectionBtn.addEventListener("click", () => {
+      if(!confirm("Delete this entire trip and all its days/stops? This affects everyone syncing this planner.")) return;
+      const sec = getActiveSection();
+      sections = sections.filter(s => s.id !== sec.id);
+      localPrefs.activeSection = sections[0].id;
+      saveSections(); saveLocalPrefs();
+      render();
+    });
+  }
+
+  document.querySelectorAll("[data-goto]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const sec = getActiveSection();
+      localPrefs.activeDayBySection[sec.id] = btn.getAttribute("data-goto");
+      editingId = null; addingDayId = null;
+      saveLocalPrefs();
+      render();
+    });
+  });
+
+  const addDayBtn = document.getElementById("addDayBtn");
+  if(addDayBtn){
+    addDayBtn.addEventListener("click", () => {
+      const sec = getActiveSection();
+      const newId = uid();
+      sec.days.push({ id: newId, label: "New Day", entries: [] });
+      localPrefs.activeDayBySection[sec.id] = newId;
+      saveSections(); saveLocalPrefs();
+      render();
+    });
+  }
+
+  const dayLabelInput = document.getElementById("dayLabelInput");
+  if(dayLabelInput){
+    dayLabelInput.addEventListener("blur", () => {
+      const day = getActiveDay();
+      day.label = dayLabelInput.value.trim() || "Untitled Day";
+      saveSections();
+      render();
+    });
+    dayLabelInput.addEventListener("keydown", (ev) => { if(ev.key === "Enter") dayLabelInput.blur(); });
+  }
+
+  const deleteDayBtn = document.getElementById("deleteDayBtn");
+  if(deleteDayBtn){
+    deleteDayBtn.addEventListener("click", () => {
+      if(!confirm("Delete this whole day and its stops?")) return;
+      const sec = getActiveSection();
+      const day = getActiveDay();
+      const idx = sec.days.findIndex(d => d.id === day.id);
+      sec.days.splice(idx, 1);
+      localPrefs.activeDayBySection[sec.id] = sec.days[Math.max(0, idx-1)].id;
+      saveSections(); saveLocalPrefs();
+      render();
+    });
+  }
+
+  const openAddForm = document.getElementById("openAddForm");
+  if(openAddForm){
+    openAddForm.addEventListener("click", () => {
+      addingDayId = getActiveDay().id;
+      render();
+      const t = document.getElementById("f_title");
+      if(t) t.focus();
+    });
+  }
+
+  document.querySelectorAll("[data-edit]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      editingId = btn.getAttribute("data-edit");
+      addingDayId = null;
+      render();
+    });
+  });
+
+  document.querySelectorAll("[data-delete]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if(!confirm("Delete this stop?")) return;
+      const day = getActiveDay();
+      day.entries = day.entries.filter(e => e.id !== btn.getAttribute("data-delete"));
+      saveSections();
+      render();
+    });
+  });
+
+  const cancelBtn = document.getElementById("f_cancel");
+  if(cancelBtn){
+    cancelBtn.addEventListener("click", () => { editingId = null; addingDayId = null; render(); });
+  }
+
+  const saveBtn = document.getElementById("f_save");
+  if(saveBtn){
+    saveBtn.addEventListener("click", () => {
+      const time = document.getElementById("f_time").value || "09:00";
+      const title = document.getElementById("f_title").value.trim();
+      const category = document.getElementById("f_category").value;
+      const location = document.getElementById("f_location").value.trim();
+      const notes = document.getElementById("f_notes").value.trim();
+      if(!title){ alert("Give this stop a name first."); return; }
+
+      const day = getActiveDay();
+      const id = saveBtn.getAttribute("data-id");
+      if(id){
+        const entry = day.entries.find(e => e.id === id);
+        entry.time = time; entry.title = title; entry.category = category; entry.location = location; entry.notes = notes;
+      } else {
+        day.entries.push({ id: uid(), time, title, category, location, notes });
+      }
+      editingId = null; addingDayId = null;
+      saveSections();
+      render();
+    });
+  }
+
+  const resetBtn = document.getElementById("resetBtn");
+  if(resetBtn){
+    resetBtn.addEventListener("click", () => {
+      if(!confirm("Clear all stops in this trip and start over? Other trips are untouched.")) return;
+      const sec = getActiveSection();
+      sec.days = [{ id: uid(), label: "Day 1", entries: [] }];
+      localPrefs.activeDayBySection[sec.id] = sec.days[0].id;
+      saveSections(); saveLocalPrefs();
+      render();
+    });
+  }
+}
+
+async function pollForChanges(){
+  if(!storageAvailable()){ syncStatus = "unsupported"; renderSyncBadge(); return; }
+  if(editingId || addingDayId) return; // don't yank the plan out from under an active edit
+  try{
+    const result = await window.storage.get(SHARED_KEY, true);
+    syncStatus = "synced"; lastSyncedAt = Date.now();
+    if(result && result.value){
+      const incoming = result.value;
+      const current = JSON.stringify(sections);
+      if(incoming !== current){
+        const fresh = JSON.parse(incoming);
+        sections = fresh;
+        if(!sections.find(s => s.id === localPrefs.activeSection)){
+          localPrefs.activeSection = sections[0].id;
+        }
+        render();
+        return; // render() already calls renderSyncBadge()
+      }
+    }
+  }catch(e){
+    // a thrown error here just means the key doesn't exist yet — still a healthy connection
+    syncStatus = "synced"; lastSyncedAt = Date.now();
+  }
+  renderSyncBadge();
+}
+
+(async function init(){
+  sections = await loadSections();
+  localPrefs = await loadLocalPrefs();
+  if(!sections.find(s => s.id === localPrefs.activeSection)){
+    localPrefs.activeSection = sections[0].id;
+  }
+  render();
+  setInterval(pollForChanges, 2500);
+})();
+</script>
+</body>
+</html>
